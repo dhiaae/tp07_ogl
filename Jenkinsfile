@@ -78,11 +78,6 @@ pipeline {
             "$SLACK_WEBHOOK" >/dev/null
         fi
       '''
-
-      // Requires EMAIL_TO set in Jenkins Global properties
-      mail to: "${EMAIL_TO}",
-           subject: "✅ Déploiement réussi - ${JOB_NAME} #${BUILD_NUMBER}",
-           body: "Déploiement réussi.\nJob: ${JOB_NAME}\nBuild: #${BUILD_NUMBER}\nURL: ${BUILD_URL}\n"
     }
 
     failure {
@@ -94,14 +89,14 @@ pipeline {
             "$SLACK_WEBHOOK" >/dev/null
         fi
       '''
-
-      mail to: "${EMAIL_TO}",
-           subject: "❌ Pipeline FAILED - ${JOB_NAME} #${BUILD_NUMBER}",
-           body: "Pipeline FAILED.\nJob: ${JOB_NAME}\nBuild: #${BUILD_NUMBER}\nURL: ${BUILD_URL}\n"
     }
 
     always {
-      archiveArtifacts artifacts: '**/build/reports/**, reports/**', allowEmptyArchive: true
+      // Ensure we have a workspace before archiving
+      node {
+        archiveArtifacts artifacts: '**/build/reports/**, reports/**, **/build/libs/*.jar, **/build/docs/javadoc/**',
+                         allowEmptyArchive: true
+      }
     }
   }
 }
