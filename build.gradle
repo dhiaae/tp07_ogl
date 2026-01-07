@@ -25,11 +25,11 @@ version = '1.0-SNAPSHOT'
  repositories {
      mavenCentral()
  }
- cucumberReports {
-     outputDir = file('reports/report.html')
-     buildId = '0'
-     reports = files('reports/example-report.json')
- }
+// cucumberReports {
+//     outputDir = file('reports/report.html')
+//     buildId = '0'
+//     reports = files('reports/example-report.json')
+// }
 
  dependencies {
      testImplementation 'io.cucumber:cucumber-java:6.0.0'
