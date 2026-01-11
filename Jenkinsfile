@@ -25,44 +25,34 @@ pipeline {
 
         stage('Test + Coverage (JaCoCo)') {
             steps {
-                echo 'Lancement des tests + génération du rapport JaCoCo...'
+                echo 'Tests + JaCoCo...'
                 retry(2) {
-                    // IMPORTANT: jacocoTestReport generates the XML Sonar needs
                     sh './gradlew test jacocoTestReport --no-daemon --refresh-dependencies'
                 }
-
-                // JUnit test reports
                 junit 'build/test-results/test/*.xml'
-
-                // Archive JaCoCo HTML + XML (optional but useful)
                 archiveArtifacts artifacts: 'build/reports/jacoco/test/**/*', fingerprint: true, allowEmptyArchive: true
             }
         }
 
         stage('Code Analysis (SonarQube)') {
             steps {
-                echo 'Analyse du code avec SonarQube...'
-                script {
-                    try {
-                        withSonarQubeEnv('SonarQube') {
-                            // Most common task name with org.sonarqube plugin:
-                            // - older: sonarqube
-                            // - newer: sonar
-                            // We'll try sonar first, and fallback to sonarqube.
-                            sh './gradlew sonar --no-daemon || ./gradlew sonarqube --no-daemon'
-                        }
-                    } catch (Exception e) {
-                        echo "SonarQube analysis failed: ${e.message}"
-                        // If you want pipeline to fail when Sonar fails, uncomment next line:
-                        // error("Stopping pipeline because SonarQube analysis failed")
-                    }
+                echo 'Analyse SonarQube...'
+
+                // IMPORTANT: No try/catch here. If Sonar fails, pipeline should fail.
+                withSonarQubeEnv('SonarQube') {
+                    // Run sonar (preferred) or sonarqube (fallback).
+                    // If BOTH fail, exit non-zero so Jenkins stops.
+                    sh '''
+                        set -e
+                        ./gradlew sonar --no-daemon || ./gradlew sonarqube --no-daemon
+                    '''
                 }
             }
         }
 
         stage('Code Quality (Quality Gate)') {
             steps {
-                echo 'Vérification des Quality Gates...'
+                echo 'Vérification Quality Gate...'
                 timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
@@ -71,30 +61,19 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo 'Construction du projet...'
+                echo 'Build...'
                 sh './gradlew build -x test --no-daemon'
                 sh './gradlew javadoc --no-daemon'
 
                 archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true, allowEmptyArchive: true
                 archiveArtifacts artifacts: 'build/docs/**/*', fingerprint: true, allowEmptyArchive: true
-
-                echo 'Build terminé'
             }
         }
 
         stage('Deploy') {
             steps {
-                echo 'Déploiement...'
-                script {
-                    try {
-                        sh './gradlew publish --no-daemon'
-                        echo 'Déploiement réussi'
-                    } catch (Exception e) {
-                        echo "Deploy failed: ${e.message}"
-                        // If you want pipeline to fail on deploy failure:
-                        // error("Stopping pipeline because deploy failed")
-                    }
-                }
+                echo 'Deploy...'
+                sh './gradlew publish --no-daemon'
             }
         }
     }
