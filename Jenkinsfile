@@ -7,7 +7,6 @@ pipeline {
 
     stages {
 
-        // Optional but useful: confirms you are really on Linux + Java is available
         stage('Debug Agent') {
             steps {
                 sh 'uname -a'
@@ -19,50 +18,51 @@ pipeline {
 
         stage('Clean') {
             steps {
-                echo ' Nettoyage...'
+                echo 'Nettoyage...'
                 sh './gradlew clean --no-daemon --refresh-dependencies'
             }
         }
 
-        stage('Test') {
+        stage('Test + Coverage (JaCoCo)') {
             steps {
-                echo ' Lancement des tests...'
+                echo 'Lancement des tests + génération du rapport JaCoCo...'
                 retry(2) {
-                    sh './gradlew test --no-daemon --refresh-dependencies'
+                    // IMPORTANT: jacocoTestReport generates the XML Sonar needs
+                    sh './gradlew test jacocoTestReport --no-daemon --refresh-dependencies'
                 }
+
+                // JUnit test reports
                 junit 'build/test-results/test/*.xml'
 
-                script {
-                    try {
-                        sh './gradlew generateCucumberReports --no-daemon'
-                        cucumber buildStatus: 'UNSTABLE',
-                                 fileIncludePattern: '**/*.json',
-                                 jsonReportDirectory: 'reports'
-                    } catch (Exception e) {
-                        echo " Cucumber reports non générés: ${e.message}"
-                    }
-                }
+                // Archive JaCoCo HTML + XML (optional but useful)
+                archiveArtifacts artifacts: 'build/reports/jacoco/test/**/*', fingerprint: true, allowEmptyArchive: true
             }
         }
 
-        stage('Code Analysis') {
+        stage('Code Analysis (SonarQube)') {
             steps {
-                echo ' Analyse du code avec SonarQube...'
+                echo 'Analyse du code avec SonarQube...'
                 script {
                     try {
                         withSonarQubeEnv('SonarQube') {
-                            sh './gradlew sonarqube --no-daemon'
+                            // Most common task name with org.sonarqube plugin:
+                            // - older: sonarqube
+                            // - newer: sonar
+                            // We'll try sonar first, and fallback to sonarqube.
+                            sh './gradlew sonar --no-daemon || ./gradlew sonarqube --no-daemon'
                         }
                     } catch (Exception e) {
-                        echo " SonarQube analysis failed: ${e.message}"
+                        echo "SonarQube analysis failed: ${e.message}"
+                        // If you want pipeline to fail when Sonar fails, uncomment next line:
+                        // error("Stopping pipeline because SonarQube analysis failed")
                     }
                 }
             }
         }
 
-        stage('Code Quality') {
+        stage('Code Quality (Quality Gate)') {
             steps {
-                echo ' Vérification des Quality Gates...'
+                echo 'Vérification des Quality Gates...'
                 timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
@@ -71,24 +71,28 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo ' Construction du projet...'
+                echo 'Construction du projet...'
                 sh './gradlew build -x test --no-daemon'
                 sh './gradlew javadoc --no-daemon'
-                archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
-                archiveArtifacts artifacts: 'build/docs/**/*', fingerprint: true
-                echo ' Build terminé'
+
+                archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true, allowEmptyArchive: true
+                archiveArtifacts artifacts: 'build/docs/**/*', fingerprint: true, allowEmptyArchive: true
+
+                echo 'Build terminé'
             }
         }
 
         stage('Deploy') {
             steps {
-                echo ' Déploiement...'
+                echo 'Déploiement...'
                 script {
                     try {
                         sh './gradlew publish --no-daemon'
-                        echo ' Déploiement réussi'
+                        echo 'Déploiement réussi'
                     } catch (Exception e) {
-                        echo " Deploy failed: ${e.message}"
+                        echo "Deploy failed: ${e.message}"
+                        // If you want pipeline to fail on deploy failure:
+                        // error("Stopping pipeline because deploy failed")
                     }
                 }
             }
