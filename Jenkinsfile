@@ -95,13 +95,13 @@ pipeline {
 //                 color: 'good',
 //                 message: "✅ Déploiement réussi !\nProjet: ${env.JOB_NAME}\nBuild: #${env.BUILD_NUMBER}\nDate: ${new Date().format('yyyy-MM-dd HH:mm')}"
 //             )
-            withCredentials("https://hooks.slack.com/services/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") {
-                        sh """
-                          curl -s -X POST -H 'Content-type: application/json' \
-                          --data '{"text":"✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}\\nBranch: ${env.BRANCH_NAME}\\nCommit: ${env.GIT_COMMIT}\\nURL: ${env.BUILD_URL}"}' \
-                          "$SLACK_WEBHOOK"
-                        """
-                    }
+ withCredentials([string(credentialsId: 'slack-webhook', variable: 'SLACK_WEBHOOK')]) {
+             sh '''
+                 curl -s -X POST -H 'Content-type: application/json' \
+                 --data "{\"text\":\"✅ SUCCESS: ${JOB_NAME} #${BUILD_NUMBER}\\nBranch: ${BRANCH_NAME}\\nCommit: ${GIT_COMMIT}\\nURL: ${BUILD_URL}\"}" \
+                 "$SLACK_WEBHOOK" || true
+             '''
+         }
             emailext (
                 subject: "✅ Build Réussi - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """
