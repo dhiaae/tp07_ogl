@@ -39,7 +39,7 @@ pipeline {
                 echo 'Analyse SonarQube...'
 
                 // IMPORTANT: No try/catch here. If Sonar fails, pipeline should fail.
-                withSonarQubeEnv('SonarQube') {
+                withSonarQubeEnv('sonar') {
                     // Run sonar (preferred) or sonarqube (fallback).
                     // If BOTH fail, exit non-zero so Jenkins stops.
                     sh '''
