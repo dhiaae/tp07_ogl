@@ -90,11 +90,11 @@ pipeline {
         success {
             echo '✅ Pipeline réussi !'
 
-            slackSend(
-                channel: '#general',
-                color: 'good',
-                message: "✅ Déploiement réussi !\nProjet: ${env.JOB_NAME}\nBuild: #${env.BUILD_NUMBER}\nDate: ${new Date().format('yyyy-MM-dd HH:mm')}"
-            )
+//             slackSend(
+//                 channel: '#general',
+//                 color: 'good',
+//                 message: "✅ Déploiement réussi !\nProjet: ${env.JOB_NAME}\nBuild: #${env.BUILD_NUMBER}\nDate: ${new Date().format('yyyy-MM-dd HH:mm')}"
+//             )
 
             emailext (
                 subject: "✅ Build Réussi - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
@@ -110,27 +110,27 @@ pipeline {
             )
         }
 
-//         failure {
-//             echo '❌ Pipeline échoué !'
-//
+        failure {
+            echo '❌ Pipeline échoué !'
+
 //             slackSend(
 //                 channel: '#general',
 //                 color: 'danger',
 //                 message: "❌ Échec du build !\nProjet: ${env.JOB_NAME}\nBuild: #${env.BUILD_NUMBER}\nLogs: ${env.BUILD_URL}"
 //             )
-//
-//             emailext (
-//                 subject: "❌ Build Échoué - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-//                 body: """
-//                     <h2>❌ Build Échoué</h2>
-//                     <p><b>Projet :</b> ${env.JOB_NAME}</p>
-//                     <p><b>Build n° :</b> ${env.BUILD_NUMBER}</p>
-//                     <p><b>Erreur :</b> Une ou plusieurs étapes ont échoué.</p>
-//                     <p><a href="${env.BUILD_URL}console">Voir les logs complets</a></p>
-//                 """,
-//                 to: 'md_harti@esi.dz',
-//                 mimeType: 'text/html'
-//             )
-//         }
+
+            emailext (
+                subject: "❌ Build Échoué - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                    <h2>❌ Build Échoué</h2>
+                    <p><b>Projet :</b> ${env.JOB_NAME}</p>
+                    <p><b>Build n° :</b> ${env.BUILD_NUMBER}</p>
+                    <p><b>Erreur :</b> Une ou plusieurs étapes ont échoué.</p>
+                    <p><a href="${env.BUILD_URL}console">Voir les logs complets</a></p>
+                """,
+                to: 'md_harti@esi.dz',
+                mimeType: 'text/html'
+            )
+        }
     }
 }
