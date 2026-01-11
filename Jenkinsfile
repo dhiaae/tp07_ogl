@@ -35,25 +35,19 @@ pipeline {
 
                 junit 'build/test-results/test/*.xml'
                 archiveArtifacts artifacts: 'build/reports/jacoco/test/**/*', fingerprint: true, allowEmptyArchive: true
+
+                script {
+                                    try {
+                                        bat './gradlew generateCucumberReports --no-daemon'
+                                        cucumber buildStatus: 'UNSTABLE',
+                                                 fileIncludePattern: '**/*.json',
+                                                 jsonReportDirectory: 'reports'
+                                    } catch (Exception e) {
+                                        echo " Cucumber reports non générés: ${e.message}"
+                                    }
             }
         }
-        stage('cucumber') {
-            steps {
-                echo 'Tests + JaCoCo...'
-                 cucumber buildStatus: 'UNSTABLE',
-                 reportTitle: 'My report',
-                 fileIncludePattern: 'reports/*.json',
-                 trendsLimit: 10
 
-                }
-
-
-
-
-                junit 'build/test-results/test/*.xml'
-                archiveArtifacts artifacts: 'build/reports/jacoco/test/**/*', fingerprint: true, allowEmptyArchive: true
-            }
-        }
         stage('Code Analysis (SonarQube)') {
             steps {
                 echo 'Analyse SonarQube...'
