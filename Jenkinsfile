@@ -114,7 +114,7 @@ pipeline {
                     <p><b>Date :</b> ${new Date()}</p>
                     <p><a href="${env.BUILD_URL}">Voir les détails du build</a></p>
                 """,
-                to: 'ml_hamadache@esi.dz',
+                to: 'md_harti@esi.dz',
                 mimeType: 'text/html'
             )
         }
@@ -137,7 +137,7 @@ pipeline {
                     <p><b>Erreur :</b> Une ou plusieurs étapes ont échoué.</p>
                     <p><a href="${env.BUILD_URL}console">Voir les logs complets</a></p>
                 """,
-                to: 'ml_hamadache@esi.dz',
+                to: 'md_harti@esi.dz',
                 mimeType: 'text/html'
             )
         }
