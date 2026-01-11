@@ -6,10 +6,21 @@ pipeline {
     }
 
     stages {
+
+        // Optional but useful: confirms you are really on Linux + Java is available
+        stage('Debug Agent') {
+            steps {
+                sh 'uname -a'
+                sh 'java -version'
+                sh 'chmod +x gradlew || true'
+                sh './gradlew --version'
+            }
+        }
+
         stage('Clean') {
             steps {
                 echo ' Nettoyage...'
-                bat '.\\gradlew clean --no-daemon --refresh-dependencies'
+                sh './gradlew clean --no-daemon --refresh-dependencies'
             }
         }
 
@@ -17,13 +28,13 @@ pipeline {
             steps {
                 echo ' Lancement des tests...'
                 retry(2) {
-                    bat '.\\gradlew test --no-daemon --refresh-dependencies'
+                    sh './gradlew test --no-daemon --refresh-dependencies'
                 }
                 junit 'build/test-results/test/*.xml'
 
                 script {
                     try {
-                        bat '.\\gradlew generateCucumberReports --no-daemon'
+                        sh './gradlew generateCucumberReports --no-daemon'
                         cucumber buildStatus: 'UNSTABLE',
                                  fileIncludePattern: '**/*.json',
                                  jsonReportDirectory: 'reports'
@@ -40,7 +51,7 @@ pipeline {
                 script {
                     try {
                         withSonarQubeEnv('SonarQube') {
-                            bat '.\\gradlew sonarqube --no-daemon'
+                            sh './gradlew sonarqube --no-daemon'
                         }
                     } catch (Exception e) {
                         echo " SonarQube analysis failed: ${e.message}"
@@ -53,7 +64,7 @@ pipeline {
             steps {
                 echo ' Vérification des Quality Gates...'
                 timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true  // ✅ Bloquant si échec
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
@@ -61,8 +72,8 @@ pipeline {
         stage('Build') {
             steps {
                 echo ' Construction du projet...'
-                bat '.\\gradlew build -x test --no-daemon'
-                bat '.\\gradlew javadoc --no-daemon'
+                sh './gradlew build -x test --no-daemon'
+                sh './gradlew javadoc --no-daemon'
                 archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
                 archiveArtifacts artifacts: 'build/docs/**/*', fingerprint: true
                 echo ' Build terminé'
@@ -74,7 +85,7 @@ pipeline {
                 echo ' Déploiement...'
                 script {
                     try {
-                        bat '.\\gradlew publish --no-daemon'
+                        sh './gradlew publish --no-daemon'
                         echo ' Déploiement réussi'
                     } catch (Exception e) {
                         echo " Deploy failed: ${e.message}"
@@ -84,7 +95,6 @@ pipeline {
         }
     }
 
-    // ✅ UN SEUL BLOC POST — CORRIGÉ
     post {
         success {
             echo '✅ Pipeline réussi !'
